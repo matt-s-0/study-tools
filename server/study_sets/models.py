@@ -1,6 +1,7 @@
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db.models import F
 
 class StudyFolder(models.Model):
     title = models.CharField(max_length=100)
@@ -14,10 +15,10 @@ class StudyFolder(models.Model):
     def save(self, *args, **kwargs) -> None:
         if self.pk:
             if self.editors.filter(pk=self.owner.pk).exists():
-                raise ValidationError({'editors': 'Group owner is in the teacher field.'})
+                raise ValidationError({'editors': 'Folder owner is in the teacher field.'})
             
             if self.viewers.filter(pk=self.owner.pk).exists():
-                raise ValidationError({'viewers': 'Group owner is in the student field.'})
+                raise ValidationError({'viewers': 'Folder owner is in the student field.'})
             
             if self.editors.filter(pk__in=self.viewers.all()).exists():
                 raise ValidationError('A user is in both editor and viewer fields.')
@@ -28,11 +29,11 @@ class StudyFolder(models.Model):
 
             if self.editors.filter(pk=self.owner.pk).exists():
                 self.delete()
-                raise ValidationError({'editors': 'Group owner is in the editor field.'})
+                raise ValidationError({'editors': 'Folder owner is in the editor field.'})
             
             if self.viewers.filter(pk=self.owner.pk).exists():
                 self.delete()
-                raise ValidationError({'viewers': 'Group owner is in the viewer field.'})
+                raise ValidationError({'viewers': 'Folder owner is in the viewer field.'})
             
             if self.editors.filter(pk__in=self.viewers.all()).exists():
                 self.delete()
@@ -91,5 +92,27 @@ class StudyTerm(models.Model):
     definition = models.TextField(max_length=600)
     position = models.PositiveIntegerField(default=0)
 
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            existing_conflicts = StudyTerm.objects.filter(position__gte=self.position)
+            
+            if self.pk:
+                existing_conflicts = existing_conflicts.exclude(pk=self.pk)
+
+            existing_conflicts.update(position=F('position') + 1)
+            
+            super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['position']
+
     def __str__(self) -> str:
         return self.term
+
+class StudyTermMultipleChoiceAnswer(models.Model):
+    study_term = models.ForeignKey(StudyTerm, on_delete=models.CASCADE, related_name='mutliple_choice_answers')
+
+    answer = models.CharField(max_length=600)
+
+    def __str__(self) -> str:
+        return self.answer

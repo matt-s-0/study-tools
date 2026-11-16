@@ -1,0 +1,1 @@
+# when doing multiple choice questions, automatically generate / pick from the study set terms that are sort of similar to the right answer
