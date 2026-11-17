@@ -177,19 +177,32 @@ def delete_study_term(request, pk):
 from ai_services import grade
 @require_POST
 @validate_user_access(StudyTerm)
-def grade_answer(request, study_term, answer):
+def grade_answer(request, pk, answer):
+
+    study_term = get_object_or_404(StudyTerm, pk=pk)
     return
 
 
 from ai_services import answer_check
 @require_POST
 @validate_user_access(StudyTerm)
-def check_answer(request, study_term, answer):
+def check_answer(request, pk, answer):
+
+    study_term = get_object_or_404(StudyTerm, pk=pk)
     return
 
 
 from ai_services import generate_choices
 @require_POST
+@validate_user_edit(StudySet)
+def generate_study_set_answer_choices(request, pk):
+
+    study_set = get_object_or_404(StudySet, pk=pk)
+    return
+
+@require_POST
 @validate_user_edit(StudyTerm)
-def generate_answer_choices(request, study_set):
+def generate_study_term_answer_choices(request, pk):
+
+    study_term = get_object_or_404(StudyTerm, pk=pk)
     return
