@@ -63,29 +63,29 @@ When uncertain:
 
 Output only valid JSON matching the provided schema."""
 
-def check(question: str, correct_answer: str, user_answer: str) -> str:
+def check(question: str, correct_answer: str, user_answer: str) -> bool:
 
     correct = correct_answer.strip().lower()
     user = user_answer.strip().lower()
 
     # Empty answers are wrong
     if not user:
-        return 'wrong'
+        return False
 
     # Exact match
     if user == correct:
-        return 'right'
+        return True
 
     # Ignore punctuation
     normalize = lambda s: re.sub(r'[^\w\s]', '', s).strip().lower()
 
     if normalize(user) == normalize(correct):
-        return 'right'
+        return True
 
     # Ex: 2+2, expected 4, check if 4 == user_answer
     try:
         if float(correct) == float(user):
-            return 'right'
+            return True
     except ValueError:
         pass
 
@@ -93,7 +93,7 @@ def check(question: str, correct_answer: str, user_answer: str) -> str:
     if correct.isdigit():
         m = re.match(r'^(\d+)', user)
         if m and m.group(1) == correct:
-            return 'right'
+            return True
 
     # List comparison
     if ',' in correct or ' and ' in correct:
@@ -105,12 +105,13 @@ def check(question: str, correct_answer: str, user_answer: str) -> str:
         supplied = split_items(user)
 
         if supplied < expected:
-            return 'wrong'
+            return False
 
         if supplied == expected:
-            return 'right'
+            return False
 
-    user_prompt = (f'Question:\n{question}\n\nExpected Answer:\n{correct_answer}\n\nUser Answer:\n{user_answer}'
-    )
+    user_prompt = (f'Question:\n{question}\n\nExpected Answer:\n{correct_answer}\n\nUser Answer:\n{user_answer}')
 
-    return _ASK(user_prompt, 'low', SYSTEM_PROMPT, FORMAT)['result']
+    result = True if _ASK(user_prompt, 'low', SYSTEM_PROMPT, FORMAT)['result'] == 'right' else False
+
+    return result
